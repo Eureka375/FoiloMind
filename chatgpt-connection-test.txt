@@ -1,0 +1,2 @@
+GitHub connector write access test.
+This temporary file can be safely deleted.
