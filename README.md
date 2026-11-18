@@ -1,5 +1,11 @@
 # FolioMind · 智序文件管家
 
+## 当前工程启动
+
+在 Windows 上安装包含 Tcl/Tk 的 Python 3.11 或更新版本，双击仓库根目录的 `launch.pyw`。也可以执行 `pythonw.exe .\launch.pyw`。当前工程已接入独立窗口、后台任务和本地设置。进入“设置”可保存首选启动页。
+
+开发与验收记录见 [F01 桌面基础](docs/implementation/F01-desktop.md) 和 [F14 配置持久化](docs/implementation/F14-settings.md)。以下保留项目设计规划。
+
 > **融合本地内容分析与 AI 辅助的文档分类、整理与检索系统**  
 > **FolioMind — AI-Assisted Document Organization and Retrieval**
 

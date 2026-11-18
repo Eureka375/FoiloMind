@@ -5,6 +5,7 @@ from tkinter import ttk
 
 from .diagnostics import check_python, check_sqlite
 from .jobs import Job, JobEvent, JobRequest, JobService, JobState
+from .settings import Settings, SettingsError, SettingsStore, StartupPage
 
 
 STATE_LABEL = {
@@ -19,12 +20,21 @@ ACTIVE_STATES = (JobState.QUEUED, JobState.RUNNING)
 
 
 class DesktopApp:
-    def __init__(self, root: tk.Tk, service: JobService | None = None) -> None:
+    def __init__(self, root: tk.Tk, settings_store: SettingsStore | None = None) -> None:
         self.root = root
-        self.service = service if service is not None else JobService()
+        self.service = JobService()
         self.current_job: Job | None = None
         self.closing = False
         self.cancelling = False
+        self.settings = Settings()
+        self.settings_store = None
+        storage_error = ""
+        try:
+            store = settings_store if settings_store is not None else SettingsStore.for_current_user()
+            self.settings = store.load()
+            self.settings_store = store
+        except SettingsError as error:
+            storage_error = str(error)
 
         root.title("FolioMind · 智序文件管家")
         root.geometry("760x480")
@@ -54,13 +64,40 @@ class DesktopApp:
         ttk.Label(self.tasks, textvariable=self.counts).pack(anchor="w", pady=(8, 8))
         self.cancel_button = ttk.Button(self.tasks, text="取消任务", command=self.cancel, state="disabled")
         self.cancel_button.pack(anchor="w")
+
+        preferences = ttk.Frame(self.tabs, padding=20)
+        self.tabs.add(preferences, text="设置")
+        ttk.Label(preferences, text="启动时打开").pack(anchor="w")
+        self.startup_page = tk.StringVar(root, value=self.settings.startup_page.value)
+        for page, name in ((StartupPage.WORKSPACE, "文件库"), (StartupPage.TASKS, "后台任务")):
+            ttk.Radiobutton(preferences, text=name, value=page.value, variable=self.startup_page).pack(anchor="w", pady=(8, 0))
+        self.save_button = ttk.Button(preferences, text="保存设置", command=self.save_settings)
+        self.save_button.pack(anchor="w", pady=(16, 8))
+        self.settings_status = tk.StringVar(root, value=storage_error)
+        ttk.Label(preferences, textvariable=self.settings_status, wraplength=500).pack(anchor="w")
+        if storage_error:
+            self.save_button.state(["disabled"])
+            ttk.Label(container, text="本地设置暂不可用。详情见“设置”。").pack(anchor="w", pady=(10, 0))
+
+        self.tabs.select(self.tasks if self.settings.startup_page == StartupPage.TASKS else self.workspace)
         ttk.Label(container, text="模型状态  未接入").pack(anchor="w", pady=(10, 0))
         root.after(30, self.poll)
+
+    def save_settings(self) -> None:
+        if self.settings_store is None:
+            return
+        page = StartupPage(self.startup_page.get())
+        try:
+            self.settings = self.settings_store.save(page, self.settings.revision)
+        except SettingsError as error:
+            self.settings_status.set(str(error))
+        else:
+            self.settings_status.set("已保存。下次启动时生效。")
 
     def start_diagnostics(self) -> None:
         if self.closing or self.run_button.instate(["disabled"]):
             return
-        request = JobRequest("runtime_check", None, 0, {})
+        request = JobRequest("runtime_check", None, self.settings.revision, {})
         self.current_job = self.service.submit(request, "检查 Python 与 SQLite", (check_python, check_sqlite))
         self.run_button.state(["disabled"])
         self.cancel_button.state(["!disabled"])

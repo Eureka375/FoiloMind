@@ -1,17 +1,24 @@
+import sqlite3
 import time
 import tkinter as tk
 import unittest
+from contextlib import closing
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from threading import Event
 from unittest.mock import patch
 
 from foliomind.desktop import DesktopApp
 from foliomind.jobs import JobEvent, JobState
+from foliomind.settings import SettingsStore, StartupPage
 
 
 class DesktopTests(unittest.TestCase):
     def setUp(self) -> None:
+        directory = self.enterContext(TemporaryDirectory())
+        self.store = SettingsStore(Path(directory) / "profile" / "foliomind.sqlite3")
         self.root = tk.Tk()
-        self.app = DesktopApp(self.root)
+        self.app = DesktopApp(self.root, self.store)
         self.addCleanup(self.close_window)
 
     def close_window(self) -> None:
@@ -76,6 +83,17 @@ class DesktopTests(unittest.TestCase):
         self.assertEqual(str(self.app.progress["mode"]), "indeterminate")
         self.app.show_event(JobEvent(job_id, JobState.COMPLETED, "处理资料", 2))
         self.assertEqual(str(self.app.progress["mode"]), "determinate")
+
+    def test_failed_save_is_visible_and_keeps_persisted_value(self) -> None:
+        self.app.startup_page.set(StartupPage.TASKS.value)
+        self.app.save_button.invoke()
+        self.assertIn("已保存", self.app.settings_status.get())
+        self.app.startup_page.set(StartupPage.WORKSPACE.value)
+        with closing(sqlite3.connect(self.store.path)) as connection, connection:
+            connection.execute("BEGIN IMMEDIATE")
+            self.app.save_button.invoke()
+            self.assertIn("无法保存", self.app.settings_status.get())
+        self.assertEqual(self.store.load().startup_page, StartupPage.TASKS)
 
 
 if __name__ == "__main__":

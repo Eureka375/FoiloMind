@@ -1,6 +1,10 @@
 """Windows desktop entry point."""
 
+import sys
+
+
 if __name__ == "__main__":
+    sys.dont_write_bytecode = True
     try:
         from foliomind.desktop import main
 
