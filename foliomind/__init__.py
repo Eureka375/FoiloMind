@@ -1,0 +1,1 @@
+"""FolioMind Windows desktop client."""
