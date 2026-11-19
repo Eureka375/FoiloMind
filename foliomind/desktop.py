@@ -10,6 +10,7 @@ from .catalog_view import CatalogView
 from .diagnostics import check_python, check_sqlite
 from .jobs import Job, JobEvent, JobRequest, JobService, JobState
 from .library import Library
+from .operation_view import OperationView
 from .review_view import ReviewView
 from .settings import Settings, SettingsError, SettingsStore, StartupPage
 
@@ -66,11 +67,14 @@ class DesktopApp:
                 ttk.Label(self.workspace, text="资料库不可用，请检查应用数据目录权限。").pack(anchor="w")
         else:
             ttk.Label(self.workspace, text="本地存储不可用。详情见设置。").pack(anchor="w")
-        self.review = None
+        self.review = self.operations = None
         if self.catalog is not None:
             review = ttk.Frame(self.tabs, padding=16)
             self.tabs.add(review, text="AI 分析与审核")
             self.review = ReviewView(review, self.catalog, self.start_work, lambda: self.tabs.select(review))
+            operations = ttk.Frame(self.tabs, padding=16)
+            self.tabs.add(operations, text="整理与历史")
+            self.operations = OperationView(operations, self.catalog, self.start_work, lambda: self.tabs.select(operations))
 
         self.tasks = ttk.Frame(self.tabs, padding=20)
         self.tabs.add(self.tasks, text="后台任务")
@@ -167,9 +171,10 @@ class DesktopApp:
             self.completion = None
             if self.catalog is not None:
                 self.catalog.run = None
-            if self.review is not None:
-                self.review.run = None
-                self.review.show_tab = None
+            for panel in (self.review, self.operations):
+                if panel is not None:
+                    panel.run = None
+                    panel.show_tab = None
             self.root.update_idletasks()
             self.root.destroy()
             return
