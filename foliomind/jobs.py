@@ -37,6 +37,8 @@ class JobEvent:
     processed: int = 0
     failed: int = 0
     total: int | None = None
+    result: object = None
+    message: str = ""
 
 
 @dataclass(frozen=True)
@@ -89,6 +91,33 @@ class JobService:
                 state = JobState.PARTIAL
             self._events.put(JobEvent(job_id, state, phase, processed, failed, total))
 
+        return self._start(request, phase, run, job_id, cancellation, total)
+
+    def submit_work(self, request: JobRequest, phase: str, work) -> Job:
+        job_id, cancellation = uuid4().hex, Event()
+
+        def run():
+            processed = failed = 0
+
+            def report(done, errors):
+                nonlocal processed, failed
+                processed, failed = done, errors
+                self._events.put(JobEvent(job_id, JobState.RUNNING, phase, processed, failed))
+
+            report(0, 0)
+            try:
+                result = work(cancellation, report)
+            except Exception as error:
+                # Public errors are already sanitized by the owning service.
+                message = str(error) if getattr(error, "public", False) else "任务无法完成，请检查设置或文件状态。"
+                self._events.put(JobEvent(job_id, JobState.FAILED, phase, processed, max(1, failed), message=message))
+                return
+            state = JobState.CANCELLED if cancellation.is_set() else JobState.PARTIAL if failed else JobState.COMPLETED
+            self._events.put(JobEvent(job_id, state, phase, processed, failed, result=result))
+
+        return self._start(request, phase, run, job_id, cancellation)
+
+    def _start(self, request, phase, run, job_id, cancellation, total=None):
         thread = Thread(target=run, name=f"foliomind-{job_id}")
         job = Job(job_id, request, cancellation, thread)
         self._events.put(JobEvent(job_id, JobState.QUEUED, phase, total=total))

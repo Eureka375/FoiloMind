@@ -95,6 +95,15 @@ class DesktopTests(unittest.TestCase):
             self.assertIn("无法保存", self.app.settings_status.get())
         self.assertEqual(self.store.load().startup_page, StartupPage.TASKS)
 
+    def test_import_fixture_and_display_original_line(self):
+        sample = Path(__file__).parent / "fixtures/n0-n1/样本目录/开发集/01_未命名.txt"
+        self.app.catalog.add_paths((str(sample),))
+        self.wait_for(lambda: len(self.app.catalog.rows) == 1)
+        doc_id = next(iter(self.app.catalog.rows))
+        self.app.catalog.tree.selection_set(doc_id)
+        self.app.catalog.show_document()
+        self.assertIn("第 2 行", self.app.catalog.preview.get("1.0", "end"))
+
 
 if __name__ == "__main__":
     unittest.main()
