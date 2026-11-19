@@ -10,6 +10,7 @@ from .catalog_view import CatalogView
 from .diagnostics import check_python, check_sqlite
 from .jobs import Job, JobEvent, JobRequest, JobService, JobState
 from .library import Library
+from .review_view import ReviewView
 from .settings import Settings, SettingsError, SettingsStore, StartupPage
 
 
@@ -65,6 +66,11 @@ class DesktopApp:
                 ttk.Label(self.workspace, text="资料库不可用，请检查应用数据目录权限。").pack(anchor="w")
         else:
             ttk.Label(self.workspace, text="本地存储不可用。详情见设置。").pack(anchor="w")
+        self.review = None
+        if self.catalog is not None:
+            review = ttk.Frame(self.tabs, padding=16)
+            self.tabs.add(review, text="AI 分析与审核")
+            self.review = ReviewView(review, self.catalog, self.start_work, lambda: self.tabs.select(review))
 
         self.tasks = ttk.Frame(self.tabs, padding=20)
         self.tabs.add(self.tasks, text="后台任务")
@@ -161,6 +167,9 @@ class DesktopApp:
             self.completion = None
             if self.catalog is not None:
                 self.catalog.run = None
+            if self.review is not None:
+                self.review.run = None
+                self.review.show_tab = None
             self.root.update_idletasks()
             self.root.destroy()
             return

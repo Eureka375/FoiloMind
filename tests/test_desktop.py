@@ -9,6 +9,7 @@ from threading import Event
 from unittest.mock import patch
 
 from foliomind.desktop import DesktopApp
+from foliomind.analysis import Profile
 from foliomind.jobs import JobEvent, JobState
 from foliomind.settings import SettingsStore, StartupPage
 
@@ -103,6 +104,37 @@ class DesktopTests(unittest.TestCase):
         self.app.catalog.tree.selection_set(doc_id)
         self.app.catalog.show_document()
         self.assertIn("第 2 行", self.app.catalog.preview.get("1.0", "end"))
+
+    def test_review_requires_confirmation_and_displays_verified_evidence(self):
+        sample = Path(__file__).parent / "fixtures/n0-n1/样本目录/开发集/01_未命名.txt"
+        self.app.catalog.add_paths((str(sample),))
+        self.wait_for(lambda: len(self.app.catalog.rows) == 1)
+        doc_id = next(iter(self.app.catalog.rows))
+        self.app.catalog.tree.selection_set(doc_id)
+        review = self.app.review
+        profile = Profile("https://example.test/v1", "test")
+        profile.save(review.library, "")
+        calls = []
+
+        def respond(_, key, stage, payload):
+            calls.append(stage)
+            if stage == "organize":
+                return {"assignments": [{"id": doc_id, "course": "计算机网络", "purpose": "学习笔记"}]}
+            fragment = next(item for item in payload["segments"] if "快速重传" in item["text"])
+            return {"course": "计算机网络", "evidence": [{"id": fragment["id"], "quote": "快速重传"}]}
+
+        review.service.transport = respond
+        with patch("foliomind.review_view.messagebox.askyesno", return_value=False):
+            review.analyze()
+        self.assertEqual(calls, [])
+        with patch.object(Profile, "key", return_value="fixture-key"), patch(
+                 "foliomind.review_view.messagebox.askyesno", return_value=True):
+            review.analyze()
+            self.wait_for(lambda: review.proposal is not None)
+        review.tree.selection_set(doc_id)
+        review.show_selection()
+        self.assertIn("第 2 行：快速重传", review.preview.get("1.0", "end"))
+        self.assertEqual(review.library.get(doc_id).course, "")
 
 
 if __name__ == "__main__":
