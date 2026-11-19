@@ -1,0 +1,2 @@
+# These fixtures deliberately cover BOM, CRLF, and invalid text bytes.
+tests/fixtures/n0-n1/样本目录/** -text

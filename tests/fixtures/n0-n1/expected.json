@@ -1,0 +1,449 @@
+{
+  "schema_version": 1,
+  "provenance": "synthetic",
+  "import_root": "样本目录",
+  "default_case": {
+    "recursive": true,
+    "exclude_directories": [
+      "资料/仅测试排除"
+    ]
+  },
+  "optional_course_list": [
+    "计算机网络",
+    "数据库原理",
+    "软件工程",
+    "人机交互"
+  ],
+  "locator_base": 1,
+  "samples": [
+    {
+      "id": "S01",
+      "path": "开发集/01_未命名.txt",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 2
+          },
+          "text": "收到三个重复 ACK 时触发快速重传。"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "计算机网络",
+        "purpose": "学习笔记",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "sha256": "7f7594c96f1a75cd7fb92c8483426f875e649d3e6663e9a4e4ac28a4341f0fd5"
+    },
+    {
+      "id": "S02",
+      "path": "开发集/数据库/02_课后记录.md",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 1
+          },
+          "text": "事务隔离笔记"
+        },
+        {
+          "locator": {
+            "line": 4
+          },
+          "text": "另一个事务插入了记录"
+        },
+        {
+          "locator": {
+            "line": 8
+          },
+          "text": "对照本次示例的快照"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "数据库原理",
+        "purpose": "学习笔记",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "note": "链接是虚构地址。提取标签文字即可，不应访问 URL。",
+      "sha256": "1a895e117bb2d7bd150fd4382648acdcd1a341dc1a168584c230306a73c2d5bf"
+    },
+    {
+      "id": "S03",
+      "path": "开发集/03_实验报告.docx",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "paragraph": 3
+          },
+          "text": "核对记录已恢复"
+        },
+        {
+          "locator": {
+            "table": 1,
+            "row": 2,
+            "column": 2
+          },
+          "text": "新增选课记录不存在"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "数据库原理",
+        "purpose": "实验报告",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "sha256": "2e3ff9b59a328ef706bc0ba81da3a982b2f95e54bd8f0ca2def630ebe50c4f82"
+    },
+    {
+      "id": "S04",
+      "path": "开发集/04_第二讲.pdf",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "page": 1
+          },
+          "text": "同一子网内的链路层地址"
+        },
+        {
+          "locator": {
+            "page": 2
+          },
+          "text": "一次 ARP 请求和响应的对照结果"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "计算机网络",
+        "purpose": "课件",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "sha256": "fd0d3ed1b7ce8c52ab3b6638e53d95dcf517e2effad5a4da192758f906e418ee"
+    },
+    {
+      "id": "S05",
+      "path": "开发集/05_跨课程复习.md",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 3
+          },
+          "text": "需求基线变更后应更新验收条件"
+        },
+        {
+          "locator": {
+            "line": 4
+          },
+          "text": "人机交互课的可用性走查"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "软件工程",
+        "purpose": "学习笔记",
+        "needs_review": true,
+        "other_course_tags": [
+          "人机交互"
+        ]
+      },
+      "sha256": "321e5d2665a7cf9861014be24d6067da95ec85ca6a4f479baf149c54677fe8be"
+    },
+    {
+      "id": "S06",
+      "path": "开发集/06_材料A.txt",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 2
+          },
+          "text": "记录一次讨论"
+        }
+      ],
+      "human_reference": {
+        "primary_course": null,
+        "purpose": "待确认",
+        "needs_review": true,
+        "other_course_tags": []
+      },
+      "note": "证据不足，不应硬猜课程。",
+      "sha256": "7b7ee2d6cc3d6978f006156daa0bf85851b07055b012a66d845a69001db204d5"
+    },
+    {
+      "id": "S07",
+      "path": "开发集/07_长期观察记录.txt",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 3
+          },
+          "text": "先区分任务成功与界面偏好"
+        },
+        {
+          "locator": {
+            "line": 62
+          },
+          "text": "反馈变化必须可感知"
+        },
+        {
+          "locator": {
+            "line": 122
+          },
+          "text": "退出后仍应能恢复阅读位置"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "人机交互",
+        "purpose": "学习笔记",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "note": "若故意调低预算，应报告 PARTIAL，不能声称覆盖末尾。",
+      "sha256": "e2d128704ee8b0f80f80eee19e1d88175a29237720fd2adc88b3593698b91720"
+    },
+    {
+      "id": "S08",
+      "path": "开发集/08_课程外材料.txt",
+      "set": "development",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 2
+          },
+          "text": "减字谱"
+        }
+      ],
+      "human_reference": {
+        "primary_course": null,
+        "purpose": "学习笔记",
+        "needs_review": true,
+        "other_course_tags": []
+      },
+      "note": "在 README 提供的课程清单模式下不应硬归到已知课程。",
+      "sha256": "deabf78a33efbbdd5f3edacff8420a7b79fcffee1a1f7ad5cb53881a59fb7213"
+    },
+    {
+      "id": "S09",
+      "path": "留出评估集/09_最终版.docx",
+      "set": "holdout",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "paragraph": 3
+          },
+          "text": "阻断仅用键盘的提交路径"
+        },
+        {
+          "locator": {
+            "table": 1,
+            "row": 2,
+            "column": 2
+          },
+          "text": "焦点从备注框跳到返回按钮"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "人机交互",
+        "purpose": "实验报告",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "sha256": "af9368e987de666268968043c32e97b2e926a171a335bc98595ff5e3d634b06c"
+    },
+    {
+      "id": "S10",
+      "path": "留出评估集/10_材料_乙.md",
+      "set": "holdout",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 3
+          },
+          "text": "需求追踪表应记录批准版本"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "软件工程",
+        "purpose": "学习笔记",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "sha256": "a89b9f103091400bab8edeef404c825d08232869893ea49c1e4aac9b15cd1b7a"
+    },
+    {
+      "id": "S11",
+      "path": "留出评估集/11_补充.pdf",
+      "set": "holdout",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "page": 1
+          },
+          "text": "复合索引中的字段顺序"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "数据库原理",
+        "purpose": "课件",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "sha256": "b7396e962c6bdce657ba2e6b50c4be19aeade56cae7e5834b505f2be138181bd"
+    },
+    {
+      "id": "S12",
+      "path": "留出评估集/12_随手记.txt",
+      "set": "holdout",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 2
+          },
+          "text": "直到缓存有效期结束"
+        },
+        {
+          "locator": {
+            "line": 3
+          },
+          "text": "对比数据库缓存"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "计算机网络",
+        "purpose": "学习笔记",
+        "needs_review": true,
+        "other_course_tags": [
+          "数据库原理"
+        ]
+      },
+      "note": "含 UTF-8 BOM 和 CRLF。",
+      "sha256": "277fc13296f5fea471d9c7854ea47bbd64175e6af7d4ed127fe61deec1013192"
+    },
+    {
+      "id": "S13",
+      "path": "边界集/13_纯扫描.pdf",
+      "set": "edge",
+      "expected_status": "EMPTY",
+      "evidence": [],
+      "note": "页面只有图像；图像页甲不得出现在提取文本。",
+      "sha256": "7ff51e35e1861e2110891f6101758a3467b09cf2ae24f16cc9271e938131aa46"
+    },
+    {
+      "id": "S14",
+      "path": "边界集/14_混合文字与扫描.pdf",
+      "set": "edge",
+      "expected_status": "PARTIAL",
+      "evidence": [
+        {
+          "locator": {
+            "page": 1
+          },
+          "text": "第一页可提取的关键术语是并发控制"
+        }
+      ],
+      "note": "明确第 2 页无文字；图像页乙不得出现在提取结果。",
+      "sha256": "5254c14b51f3bec85c1152563236be6df13b66243bdf9f98b3649e6df94f64d5"
+    },
+    {
+      "id": "S15",
+      "path": "边界集/15_加密.pdf",
+      "set": "edge",
+      "expected_status": "FAILED",
+      "evidence": [],
+      "note": "ENCRYPTED。样本密码 fixture-only 仅用于人工核验；普通扫描不得当作可读。",
+      "sha256": "1faf609c83c9934836a67a0d6ceffcae814f1bf4c8137bfeaf1dd7a92c240f1e"
+    },
+    {
+      "id": "S16",
+      "path": "边界集/16_损坏.pdf",
+      "set": "edge",
+      "expected_status": "FAILED",
+      "evidence": [],
+      "note": "MALFORMED。故意截断，缺少有效页树及交叉引用。",
+      "sha256": "f125c3f4685ec03aa79d05f0d51ad3c024a51b2b115cb02b97604248fd5dc4ff"
+    },
+    {
+      "id": "S17",
+      "path": "边界集/17_损坏.docx",
+      "set": "edge",
+      "expected_status": "FAILED",
+      "evidence": [],
+      "note": "MALFORMED。故意截断的 ZIP 头。",
+      "sha256": "be0c7ebd8b5fd4585f4b493d0325f974789b089cf31d26fe1078df41a5412fe3"
+    },
+    {
+      "id": "S18",
+      "path": "边界集/18_空白.txt",
+      "set": "edge",
+      "expected_status": "EMPTY",
+      "evidence": [],
+      "note": "没有可索引正文。",
+      "sha256": "3ee42a8fa03e7fcdcb07efcd9194f20bfb64d15733407d6f90fccffd92df3666"
+    },
+    {
+      "id": "S19",
+      "path": "边界集/19_不可解码.txt",
+      "set": "edge",
+      "expected_status": "FAILED",
+      "evidence": [],
+      "note": "按 UTF-8 及规格中的编码策略应判为不可解码或非文本，不能以替换字符冒充正文。",
+      "sha256": "76ac5fde3aeecb2caba06664c91897f09688136727974200f4c4419db64392f2"
+    },
+    {
+      "id": "S20",
+      "path": "边界集/20_附件.csv",
+      "set": "edge",
+      "expected_status": "UNSUPPORTED",
+      "evidence": [],
+      "note": "首版不进入正文处理。界面可列为不支持或跳过。",
+      "sha256": "0022eccc6f140b307ed5dba60674213e841fde9b73f6a6d1e41f1124811b6dc0"
+    },
+    {
+      "id": "S21",
+      "path": "资料/仅测试排除/21_排除探针.txt",
+      "set": "edge",
+      "expected_status": "EXCLUDED",
+      "evidence": [],
+      "note": "排除资料/仅测试排除后，本文件不得被打开、展示或索引。",
+      "sha256": "2f34769d04af809eb4dbadd4f6d3681fc84679d814c75293780141bee049a863"
+    },
+    {
+      "id": "S22",
+      "path": "资料/仅测试排除-应纳入/22_相似目录.txt",
+      "set": "edge",
+      "expected_status": "EXTRACTED",
+      "evidence": [
+        {
+          "locator": {
+            "line": 2
+          },
+          "text": "用 traceroute 检查路由路径"
+        }
+      ],
+      "human_reference": {
+        "primary_course": "计算机网络",
+        "purpose": "实验报告",
+        "needs_review": false,
+        "other_course_tags": []
+      },
+      "note": "与排除目录仅前缀相同，仍应纳入。",
+      "sha256": "ce3b457b97c404337aa43be837c0f221a4e8241851db2703ebc240b360e53012"
+    }
+  ]
+}
