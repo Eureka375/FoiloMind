@@ -12,7 +12,15 @@
 
 ## 模型准备
 
-模型使用 `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` 固定提交 `e8f8c211226b894fcb81acc59f3b34ba3efd5f42`。已验证 SentenceTransformer 3.4.1 / Transformers 4.49.0 在本机导入。官方模型 CDN 多次超时，Hub 镜像元数据也出现不兼容，改为显式 HTTPS 镜像直接下载相同版本。真实语义推理结果在完成权重下载后另行补充；本节不将接口实现当作真实模型验收。
+模型使用 `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` 固定提交 `e8f8c211226b894fcb81acc59f3b34ba3efd5f42`。已验证 SentenceTransformer 3.4.1 / Transformers 4.49.0 在本机导入。官方模型 CDN 多次超时，Hub 镜像元数据也出现不兼容，改为显式 HTTPS 镜像直接下载相同版本。已完成 470641600 字节权重下载，SHA-256 为 `eaa086f0ffee582aeb45b36e34cdd1fe2d6de2bef61f8a559a1bbc9bd955917b`。
+
+## 真实本地模型补充验收
+
+`runs/benchmark-both/summary.json` 使用完整本地模型运行，分类命令没有网络提权。15 份合成源文件哈希全部不变，13 份成功提取的文档参与两种聚类（含扫描 PDF OCR），另有故意损坏和空白各一份。两种算法均退出成功，TF-IDF 和 Embedding 对本合成参考的 ARI 均为 1.0。
+
+本次总墙钟 23.563 秒、CPU 25.500 秒、观测 RSS 峰值 900.91 MiB。TF-IDF 阶段 3.011 秒、183.06 MiB；Embedding 阶段 20.141 秒、900.91 MiB，包含导入和 CPU 模型加载，内存数值是进程峰值而非增量。模型输出 384 维向量。该样本主题简单、关键词重复，不足以证明 Embedding 优于 TF-IDF；真实中文同义表达、跨语言和跨主题质量仍待人工评估。
+
+模型 tokenizer 的 128 token 限制已通过真实 tokenizer 回归测试验证：中文长文本切片后无遗漏、每片含特殊 token 不超过上限。最终实验测试 8 项全部通过，耗时 13.022 秒，无跳过；无本地语言包/模型 tokenizer 的新环境会跳过对应两项集成测试。独立复查确认排除路径、首尾抽样和 token 上限三处修正均有效。
 
 本机复用 Python 3.13.5、PyTorch 2.11.0 CPU、scikit-learn 1.8.0、PyMuPDF 1.27.2.3、python-docx 1.2.0、psutil 7.2.2。OCR 使用 tessdata_fast `87416418657359cb625c412a48b6e1d6d41c29bd`，英文 SHA-256 `7d4322bd2a7749724879683fc3912cb542f19906c83bcc1a52132556427170b2`，简体中文 `a5fcb6f0db1e1d6d8522f39db4e848f05984669172e584e8d76b6b3141e1f730`。
 

@@ -77,6 +77,17 @@ class PrototypeTests(unittest.TestCase):
         self.assertEqual(''.join(chunks), text)
         self.assertTrue(all(len(c)*3 <= 126 for c in chunks))
 
+    @unittest.skipUnless((BASE / 'models/multilingual-minilm/tokenizer.json').exists(), 'local tokenizer not prepared')
+    def test_actual_multilingual_tokenizer_windows_fit_model(self):
+        from transformers import AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(str(BASE / 'models/multilingual-minilm'), local_files_only=True)
+        text = '甲乙丙丁戊己庚辛壬癸' * 40
+        def count(value):
+            return len(tokenizer.encode(value, add_special_tokens=False, truncation=False, verbose=False))
+        chunks = app.embedding_chunks(text, count, 128-tokenizer.num_special_tokens_to_add(pair=False))
+        self.assertEqual(''.join(chunks), text)
+        self.assertTrue(all(len(tokenizer.encode(c)) <= 128 for c in chunks))
+
     def test_empty_single_and_identical_corpora(self):
         self.assertEqual(app.cluster_tfidf([], 2)['assignments'], [])
         self.assertEqual(app.cluster_tfidf(['数据库'], 2)['assignments'], [0])

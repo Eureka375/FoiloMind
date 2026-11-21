@@ -236,7 +236,7 @@ def cluster_embedding(texts, clusters, model_path):
         return dict(assignments=[], keywords={})
     budget = model.max_seq_length - model.tokenizer.num_special_tokens_to_add(pair=False)
     def token_count(value):
-        return len(model.tokenizer.encode(value, add_special_tokens=False, truncation=False))
+        return len(model.tokenizer.encode(value, add_special_tokens=False, truncation=False, verbose=False))
     pieces, owners = [], []
     for i, text in enumerate(texts):
         for chunk in embedding_chunks(text, token_count, budget):

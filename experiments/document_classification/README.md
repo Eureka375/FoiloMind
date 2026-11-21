@@ -78,4 +78,10 @@ experiments/document_classification/.venv/Scripts/python.exe -B -m unittest disc
 
 这是无监督分组实验，尚未接入正式客户端、持久化、真实资料人工评价或自动命名。抽样会遗漏局部主题；纯数字/符号文本标记为 no_features；跨主题文档仍只分到一组。后续应先用真实脱敏留出集比较分组质量、人工修改量和 CPU/内存，再决定缓存、自动类别数或客户端接入。
 
-实现依据：[SentenceTransformer 离线模型接口](https://www.sbert.net/docs/package_reference/sentence_transformer/model.html)、[sklearn 层次聚类](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html)、[PyMuPDF OCR](https://pymupdf.readthedocs.io/en/latest/page.html)。实测记录见本目录 VALIDATION.md。
+实现依据：[SentenceTransformer 离线模型接口](https://www.sbert.net/docs/package_reference/sentence_transformer/model.html)、[sklearn 层次聚类](https://scikit-learn.org/stable/modules/generated/sklearn.cluster.AgglomerativeClustering.html)、[PyMuPDF OCR](https://pymupdf.readthedocs.io/en/latest/page.html)。实测记录见本目录 [VALIDATION.md](VALIDATION.md)。
+
+完整可重复的性能对照（创建合成输入、运行两种算法、核对原件哈希并输出 ARI 与资源记录）：
+
+```powershell
+experiments/document_classification/.venv/Scripts/python.exe -B experiments/document_classification/benchmark_demo.py experiments/document_classification/runs/compare-001 --model experiments/document_classification/models/multilingual-minilm --tessdata experiments/document_classification/tessdata
+```
