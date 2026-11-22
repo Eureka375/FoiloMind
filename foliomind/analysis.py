@@ -190,6 +190,7 @@ class Proposal:
     revision: int
     rows: tuple[Analysis, ...]
     rationale: str = ""
+    mode: str = ""
 
 
 def chunk_document(record):

@@ -12,7 +12,10 @@ EDIT_KEYS = {"id", "course", "purpose", "tags", "name"}
 
 
 def serialize(proposal):
-    return json.dumps(asdict(proposal), ensure_ascii=False)
+    data = asdict(proposal)
+    if not proposal.mode:
+        del data["mode"]
+    return json.dumps(data, ensure_ascii=False)
 
 
 def deserialize(payload):
@@ -77,8 +80,11 @@ class ProposalStore:
             raise CatalogError("没有明确可预览的修改。请说明要改哪些文件及归类。")
         rows = {row.id: row for row in proposal.rows}
         touched, lines = set(), []
+        allowed = {"id", "course"} if proposal.mode == "subject" else EDIT_KEYS
         for edit in edits:
-            if not isinstance(edit, dict) or set(edit) - EDIT_KEYS:
+            if not isinstance(edit, dict) or set(edit) - allowed:
+                if proposal.mode == "subject":
+                    raise CatalogError("学生课程方案只能修改课程归属。")
                 raise CatalogError("方案修改只能包含课程、用途、标签和拟用名称。")
             doc_id = field(edit, "id")
             if doc_id not in rows or doc_id in touched:
@@ -157,6 +163,8 @@ class ProposalStore:
     def apply(self, proposal, ids, aspects):
         if not ids or not aspects or not aspects <= ASPECTS:
             raise CatalogError("请选择资料和确认项目。")
+        if proposal.mode == "subject" and aspects != {"classification"}:
+            raise CatalogError("学生课程方案只保存课程归属。")
         selected = [row for row in proposal.rows if row.id in ids]
         if len(selected) != len(ids):
             raise CatalogError("方案包含未知文件。")
@@ -184,7 +192,7 @@ class ProposalStore:
                     raise CatalogError("资料已变化，未保存本次审核。")
                 db.execute("UPDATE documents SET course=?,purpose=?,tags=?,proposed_name=? WHERE id=?",
                            (row.course if "classification" in aspects else saved["course"],
-                            row.purpose if "classification" in aspects else saved["purpose"],
+                            row.purpose if "classification" in aspects and proposal.mode != "subject" else saved["purpose"],
                             json.dumps(row.tags, ensure_ascii=False) if "tags" in aspects else saved["tags"],
                             row.name if "name" in aspects else saved["proposed_name"], row.id))
                 db.executemany("INSERT OR REPLACE INTO proposal_reviews (proposal_id,revision,document_id,aspect) VALUES (?,?,?,?)",

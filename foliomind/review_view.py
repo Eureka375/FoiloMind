@@ -5,9 +5,10 @@ from pathlib import Path
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from .analysis import AnalysisService, Profile, request_json
-from .discovery import discover_folder
+from .discovery import draft_folder
 from .library import CatalogError
 from .proposals import ProposalStore, RevisionInput
+from .subjects import SUBJECT_NAMES, build_subject_proposal
 
 
 class ProfileDialog(simpledialog.Dialog):
@@ -38,6 +39,22 @@ class ProfileDialog(simpledialog.Dialog):
         return True
 
 
+class CourseDialog(simpledialog.Dialog):
+    def __init__(self, parent, initial, count):
+        self.initial, self.count = initial, count
+        super().__init__(parent, "修改课程分类")
+
+    def body(self, master):
+        ttk.Label(master, text=f"为所选 {self.count} 份资料选择或输入课程名。留空转待确认。").pack(anchor="w", pady=6)
+        self.course = ttk.Combobox(master, values=SUBJECT_NAMES, width=30)
+        self.course.set(self.initial)
+        self.course.pack(fill="x")
+        return self.course
+
+    def apply(self):
+        self.result = self.course.get().strip()
+
+
 class ReviewView:
     def __init__(self, frame, catalog, run, show_tab):
         self.frame, self.catalog, self.run, self.show_tab = frame, catalog, run, show_tab
@@ -46,6 +63,11 @@ class ReviewView:
         self.store = ProposalStore(self.library)
         self.proposal = None
         self.rows = {}
+        discovery = ttk.Frame(frame)
+        discovery.pack(fill="x", pady=(0, 6))
+        self.discovery_button = ttk.Button(discovery, text="选择文件夹并按课程分类", command=self.discover)
+        self.discovery_button.pack(side="left")
+        ttk.Button(discovery, text="修改课程分类", command=self.change_group).pack(side="left", padx=6)
         bar = ttk.Frame(frame)
         bar.pack(fill="x")
         for title, action in (
@@ -53,19 +75,11 @@ class ReviewView:
             ("历史方案", self.open_existing), ("手动调整", self.manual), ("文字修订", self.revise),
         ):
             ttk.Button(bar, text=title, command=action).pack(side="left", padx=(0, 6))
-        discovery = ttk.Frame(frame)
-        discovery.pack(fill="x", pady=(6, 0))
-        self.discovery_button = ttk.Button(discovery, text="选择文件夹并发现分组", command=self.discover)
-        self.discovery_button.pack(side="left")
-        ttk.Button(discovery, text="修改分组", command=self.change_group).pack(side="left", padx=6)
-        self.semantic_discovery = tk.BooleanVar(frame, value=False)
-        ttk.Checkbutton(discovery, text="使用本地语义模型", variable=self.semantic_discovery).pack(side="left")
         row = ttk.Frame(frame)
         row.pack(fill="x", pady=8)
-        ttk.Label(row, text="可选课程清单（逗号分隔）").pack(side="left")
+        ttk.Label(row, text="云端分析课程清单（可选，逗号分隔）").pack(side="left")
         self.courses = tk.StringVar(frame)
         ttk.Entry(row, textvariable=self.courses).pack(side="left", fill="x", expand=True, padx=6)
-        ttk.Label(row, text="空白时允许提出候选课程").pack(side="left")
 
         tree_frame = ttk.Frame(frame)
         tree_frame.pack(fill="both", expand=True)
@@ -86,12 +100,15 @@ class ReviewView:
         bar = ttk.Frame(frame)
         bar.pack(fill="x", pady=6)
         self.flags = {}
+        self.aspect_controls = {}
         for key, label in (("classification", "主分类"), ("tags", "标签"), ("name", "拟用名称")):
             value = tk.BooleanVar(frame, value=key == "classification")
             self.flags[key] = value
-            ttk.Checkbutton(bar, text=label, variable=value).pack(side="left", padx=(0, 8))
-        ttk.Button(bar, text="接受选中项", command=self.apply).pack(side="left")
-        self.status = tk.StringVar(frame, "选择文件夹发现分组，或从文件库选择资料启动云端分析。")
+            self.aspect_controls[key] = ttk.Checkbutton(bar, text=label, variable=value)
+            self.aspect_controls[key].pack(side="left", padx=(0, 8))
+        self.accept_button = ttk.Button(bar, text="接受选中项", command=self.apply)
+        self.accept_button.pack(side="left")
+        self.status = tk.StringVar(frame, "选择文件夹，按内置的常见课程自动分类。")
         ttk.Label(frame, textvariable=self.status, wraplength=740).pack(anchor="w")
 
     def get_profile(self):
@@ -124,28 +141,22 @@ class ReviewView:
         folder = filedialog.askdirectory(parent=self.frame, mustexist=True, title="选择待分类的文件夹")
         if not folder:
             return
-        model_path = None
-        if self.semantic_discovery.get():
-            chosen_model = filedialog.askdirectory(parent=self.frame, mustexist=True, title="选择已下载的本地模型目录")
-            if not chosen_model:
-                return
-            model_path = Path(chosen_model)
         recursive = self.catalog.recursive.get()
         exclusions = tuple(value.strip() for value in self.catalog.exclusions.get().split(";") if value.strip())
         scope = "包含子目录" if recursive else "仅处理当前目录"
         excluded = "、".join(exclusions) or "无额外排除项"
         if not messagebox.askyesno(
-            "确认本地分析",
+            "确认本地课程分类",
             f"{folder}\n新来源：{scope}，排除项：{excluded}。已导入来源沿用原范围。"
-            "\n同意读取并加入本地资料库？分析和分组在本机运行，确认分类只会更新资料库。",
+            "\n同意读取并加入本地资料库？课程分类在本机运行，确认分类只会更新资料库。",
             parent=self.frame,
         ):
             return
         library, store = self.library, self.store
 
         def work(stop, progress):
-            proposal = discover_folder(library, store, Path(folder), stop, progress,
-                                       recursive=recursive, exclusions=exclusions, model_path=model_path)
+            proposal = draft_folder(library, store, Path(folder), stop, progress, build_subject_proposal,
+                                    recursive=recursive, exclusions=exclusions)
             return proposal, library.documents()
 
         def complete(result):
@@ -156,18 +167,14 @@ class ReviewView:
                     flag.set(name == "classification")
                 self.render(proposal)
 
-        self.run("本地发现分组", work, complete)
+        self.run("按课程分类", work, complete)
 
     def change_group(self):
         rows = self.selected_rows()
         if not rows:
-            self.status.set("请选择需要改分组的文件或整组。")
+            self.status.set("请选择需要修改分类的文件或课程。")
             return
-        group = simpledialog.askstring(
-            "修改分组",
-            f"为所选 {len(rows)} 份资料输入分组名。输入已有组名可合并，留空转待确认。",
-            initialvalue=rows[0].course, parent=self.frame,
-        )
+        group = CourseDialog(self.frame, rows[0].course, len(rows)).result
         if group is None:
             return
         try:
@@ -217,6 +224,14 @@ class ReviewView:
         self.proposal = proposal
         self.rows = {}
         self.tree.delete(*self.tree.get_children())
+        for key in ("tags", "name"):
+            control = self.aspect_controls[key]
+            if proposal.mode == "subject":
+                self.flags[key].set(False)
+                control.pack_forget()
+            elif not control.winfo_manager():
+                control.pack(side="left", padx=(0, 8), before=self.accept_button)
+        self.tree.heading("#0", text="课程 / 用途 / 文件" if any(row.purpose for row in proposal.rows) else "课程 / 文件")
         groups = {}
         for row in proposal.rows:
             try:
@@ -227,15 +242,17 @@ class ReviewView:
             group_key = (group_name,)
             if group_key not in groups:
                 groups[group_key] = self.tree.insert("", "end", text=group_name, open=True)
-            purpose = row.purpose or "待定用途"
-            subgroup = (group_name, purpose)
-            if subgroup not in groups:
-                groups[subgroup] = self.tree.insert(groups[group_key], "end", text=purpose, open=True)
+            parent = groups[group_key]
+            if row.purpose:
+                subgroup = (group_name, row.purpose)
+                if subgroup not in groups:
+                    groups[subgroup] = self.tree.insert(parent, "end", text=row.purpose, open=True)
+                parent = groups[subgroup]
             label = "待核对" if row.review else "可审核"
             if doc.digest != row.digest:
                 label = "资料已变化"
             coverage = {"COMPLETE": "完整", "PARTIAL": "部分", "FAILED": "失败", "STALE": "过时"}.get(row.coverage)
-            self.tree.insert(groups[subgroup], "end", iid=row.id, text=doc.path.name,
+            self.tree.insert(parent, "end", iid=row.id, text=doc.path.name,
                              values=(label, f"{coverage} · {row.covered}/{row.total}"))
             self.rows[row.id] = row
         self.status.set(f"第 {proposal.revision} 版 · {proposal.rationale}")
@@ -275,14 +292,20 @@ class ReviewView:
         if doc.digest != row.digest:
             self.set_preview("原文已变化。请重新分析以核对证据。")
             return
-        lines = [f"候选课程：{row.course or '待确认'}", f"用途：{row.purpose or '待确认'}", f"主题：{row.topic}",
-                 f"摘要：{row.summary}", f"标签：{'、'.join(row.tags)}", f"拟用名称：{row.name}"]
+        lines = [f"候选课程：{row.course or '待确认'}"]
+        lines.extend(f"{title}：{value}" for title, value in (
+            ("用途", row.purpose), ("主题", row.topic), ("摘要", row.summary),
+            ("标签", "、".join(row.tags)), ("拟用名称", row.name),
+        ) if value)
         if row.detail:
             lines.append(row.detail)
         lines.extend(f"原文依据 · {e.locator}：{e.quote}" for e in row.evidence)
         self.set_preview("\n".join(lines))
 
     def manual(self):
+        if self.proposal and self.proposal.mode == "subject":
+            self.change_group()
+            return
         rows = self.selected_rows()
         if not rows:
             return
@@ -311,6 +334,9 @@ class ReviewView:
 
     def revise(self):
         if not self.proposal:
+            return
+        if self.proposal.mode == "subject":
+            self.status.set("请选择资料或整门课，再点击“修改课程分类”。")
             return
         value = simpledialog.askstring("文字修订", "只描述对当前分类方案的修改。", parent=self.frame)
         if not value:

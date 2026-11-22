@@ -54,6 +54,16 @@ def samples(record):
     return tuple(result)
 
 
+def sample_coverage(record, parts):
+    complete = (record.status == "EXTRACTED" and len(parts) == len(record.segments)
+                and all(piece == segment.text for _, segment, _, piece in parts))
+    return {
+        "coverage": "COMPLETE" if complete else "PARTIAL",
+        "covered": len({index for index, *_ in parts}),
+        "total": len(record.segments),
+    }
+
+
 def find_groups(features):
     """Discover groups from a feature matrix. Negative labels stay unassigned."""
     import numpy as np
@@ -178,13 +188,10 @@ def build_proposal(records, stop, *, model_path=None):
             rows[record.id] = Analysis(record.id, record.digest,
                                        detail=record.detail or "没有可用于发现分组的正文。")
             continue
-        coverage = "COMPLETE" if (record.status == "EXTRACTED" and
-                                  len(used) == len(record.segments) and
-                                  all(piece == segment.text for _, segment, _, piece in used)) else "PARTIAL"
+        coverage = sample_coverage(record, used)
         entries.append((record, used, body, coverage))
         rows[record.id] = Analysis(
-            record.id, record.digest, coverage=coverage,
-            covered=len({index for index, *_ in used}), total=len(record.segments),
+            record.id, record.digest, **coverage,
             detail="未发现足够相似的文档，请审核并选择类别。",
         )
 
@@ -218,8 +225,7 @@ def build_proposal(records, stop, *, model_path=None):
             record, parts, _, coverage = entries[index]
             rows[record.id] = Analysis(
                 record.id, record.digest, course=name, topic="、".join(keywords),
-                evidence=(representative_evidence(parts, keywords),), coverage=coverage,
-                covered=len({n for n, *_ in parts}), total=len(record.segments),
+                evidence=(representative_evidence(parts, keywords),), **coverage,
                 review=False, detail="按组内共享正文特征生成。可在确认前改名、合并或调整归属。",
             )
 
@@ -233,6 +239,14 @@ def build_proposal(records, stop, *, model_path=None):
 
 def discover_folder(library, store, folder: Path, stop, progress, *,
                     recursive=True, exclusions=(), model_path=None):
+    def classify(records, stop):
+        return build_proposal(records, stop, model_path=model_path)
+
+    return draft_folder(library, store, folder, stop, progress, classify,
+                        recursive=recursive, exclusions=exclusions)
+
+
+def draft_folder(library, store, folder: Path, stop, progress, classify, *, recursive=True, exclusions=()):
     if stop.is_set():
         return None
     folder = absolute(folder)
@@ -252,7 +266,7 @@ def discover_folder(library, store, folder: Path, stop, progress, *,
         return None
     if not records:
         raise CatalogError("这个目录没有可加入审核的资料。请检查子目录和排除项设置。")
-    proposal = build_proposal(records, stop, model_path=model_path)
+    proposal = classify(records, stop)
     if proposal is not None and not stop.is_set():
         store.create(proposal, check_current=True)
         return proposal

@@ -96,7 +96,7 @@ class DesktopTests(unittest.TestCase):
             self.assertIn("无法保存", self.app.settings_status.get())
         self.assertEqual(self.store.load().startup_page, StartupPage.TASKS)
 
-    def test_discover_folder_and_confirm_classification_in_review_tab(self):
+    def test_classify_folder_by_subject_and_confirm_in_review_tab(self):
         with TemporaryDirectory() as chosen:
             folder = Path(chosen)
             for name, text in {
@@ -113,7 +113,10 @@ class DesktopTests(unittest.TestCase):
                 self.wait_for(lambda: view.proposal is not None)
                 record = next(doc for doc in view.library.documents() if doc.path.name == "a.txt")
                 suggested = view.rows[record.id].course
-                self.assertTrue(suggested)
+                self.assertEqual(suggested, "数据库")
+                self.assertEqual(view.tree.heading("#0", "text"), "课程 / 文件")
+                self.assertEqual(view.tree.item(view.tree.parent(record.id), "text"), "数据库")
+                self.assertFalse(view.aspect_controls["tags"].winfo_manager())
                 view.tree.selection_set(record.id)
                 self.assertEqual(record.course, "")
                 view.apply()
