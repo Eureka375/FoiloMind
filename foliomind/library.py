@@ -154,11 +154,11 @@ def scoped_extract(path, sources):
         return None
 
 
-def scan_pairs(sources: tuple[Source, ...], stop: Event, ignored=frozenset(), reader=None):
+def scan_pairs(sources: tuple[Source, ...], stop: Event, ignored=frozenset(), reader=None, *, roots=None):
     if reader is None:
         reader = lambda path: scoped_extract(path, sources)
     seen = set()
-    for source in sources:
+    for source in sources if roots is None else roots:
         try:
             for path in candidates(source, sources, stop):
                 key = path_key(path)
@@ -364,16 +364,20 @@ class Library:
                 self.hide(db, row["id"], "EXCLUDED", "来源已移除")
             self.purge_analysis(db, (row["id"] for row in rows))
 
-    def record(self, source: Source, doc: Extracted, epoch=None) -> Record | None:
+    def record(self, source: Source, doc: Extracted, epoch=None, *, keep_source=False) -> Record | None:
         key = path_key(doc.path)
         with self.connect() as db:
             db.execute("BEGIN IMMEDIATE")
-            if epoch is not None and (epoch != self.epoch(db)
-                    or not currently_authorized(doc.path, self.sources_from(db))):
-                return None
+            if epoch is not None or keep_source:
+                sources = self.sources_from(db)
+                if epoch is not None and (epoch != self.epoch(db) or not currently_authorized(doc.path, sources)):
+                    return None
             current = db.execute("SELECT * FROM documents WHERE path_key=?", (key,)).fetchone()
             if current and current["ignored"]:
                 return self.to_record(current)
+            if keep_source and current:
+                source = next((owner for owner in sources if path_key(owner.path) == current["source_key"]
+                               and owner.covers(doc.path) and owner.is_current()), source)
             if current and doc.identity and current["identity"] and doc.identity != current["identity"]:
                 db.execute("DELETE FROM documents WHERE id=?", (current["id"],))
                 current = None
@@ -389,11 +393,17 @@ class Library:
             )
             return self.to_record(db.execute("SELECT * FROM documents WHERE id=?", (doc_id,)).fetchone())
 
-    def refresh(self, stop: Event, progress=lambda *_: None):
+    def refresh(self, stop: Event, progress=lambda *_: None, *, only=None):
         with self.connect() as db:
             db.execute("BEGIN")
             sources, epoch = self.sources_from(db), self.epoch(db)
             ignored = {row[0] for row in db.execute("SELECT path_key FROM documents WHERE ignored=1")}
+
+        roots = sources
+        if only is not None:
+            roots = tuple(source for source in sources if path_key(source.path) == path_key(only))
+            if len(roots) != 1 or not roots[0].is_current():
+                raise CatalogError("所选资料目录已移除或无法访问。")
 
         def read_authorized(path):
             with self.connect() as db:
@@ -404,8 +414,9 @@ class Library:
 
         seen = set()
         failed_paths = []
+        scoped_records = []
         processed = failures = 0
-        for source, doc in scan_pairs(sources, stop, ignored, read_authorized):
+        for source, doc in scan_pairs(sources, stop, ignored, read_authorized, roots=roots):
             if stop.is_set():
                 break
             seen.add(path_key(doc.path))
@@ -414,7 +425,9 @@ class Library:
             if doc.status == "FAILED":
                 failed_paths.append(doc.path)
             if source.covers(doc.path):
-                saved = self.record(source, doc, epoch)
+                saved = self.record(source, doc, epoch, keep_source=only is not None)
+                if saved is not None and only is not None and not saved.ignored:
+                    scoped_records.append(saved)
                 if saved is None and doc.status == "FAILED":
                     with self.connect() as db:
                         db.execute("BEGIN IMMEDIATE")
@@ -426,14 +439,18 @@ class Library:
             with self.connect() as db:
                 db.execute("BEGIN IMMEDIATE")
                 if epoch != self.epoch(db):
+                    if only is not None:
+                        raise CatalogError("导入范围已变化，请重新发现分组。")
                     return self.documents()
                 for r in db.execute("SELECT id,path,path_key FROM documents WHERE ignored=0").fetchall():
                     path = Path(r["path"])
                     if r["path_key"] in seen or not authorized(path, sources):
                         continue
+                    if only is not None and not roots[0].covers(path):
+                        continue
                     status = "STALE" if any(path.is_relative_to(p) for p in failed_paths) else "MISSING"
                     self.hide(db, r["id"], status, "本次未能访问" if status == "STALE" else "文件已不在原位置")
-        return self.documents()
+        return self.documents() if only is None else scoped_records
 
     def documents(self, *, ignored=False) -> list[Record]:
         with self.connect() as db:

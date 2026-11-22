@@ -6,6 +6,8 @@
 
 开发环境使用 Python 3.11+（已验证 3.13 x64）。先在虚拟环境中安装 `requirements.txt`，再运行 `python launch.pyw`。可从“文件库”导入 `tests/fixtures/n0-n1/样本目录`，选择递归，并将 `资料/仅测试排除` 填入排除路径。模型服务未配置时，导入、搜索、人工分类与经确认的实际整理仍可使用。
 
+在“AI 分析与审核”点击“选择文件夹并发现分组”，直接从正文发现并命名分类。完成后可修改分组、批量确认并把分类写入资料库。默认关键词模式在本机运行，可按需选择已下载的本地语义模型。使用方法与验收见 [自动发现分组](docs/implementation/topic-discovery.md)。
+
 运行测试：`python -B -m unittest discover -s tests -v`。Windows 打包：安装 `requirements-build.txt` 后运行 `python -m PyInstaller FolioMind.spec`。
 
 在 Windows 上安装包含 Tcl/Tk 的 Python 3.11 或更新版本，双击仓库根目录的 `launch.pyw`。也可以执行 `pythonw.exe .\launch.pyw`。当前工程已接入独立窗口、后台任务和本地设置。进入“设置”可保存首选启动页。

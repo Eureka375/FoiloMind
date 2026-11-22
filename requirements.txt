@@ -3,3 +3,5 @@ pypdf>=6.21,<7
 cryptography>=43
 keyring>=25,<26
 tkinterdnd2>=0.4,<1
+scikit-learn>=1.4,<2
+jieba>=0.42,<1

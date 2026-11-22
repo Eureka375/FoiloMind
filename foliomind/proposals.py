@@ -43,8 +43,18 @@ class ProposalStore:
     def __init__(self, library):
         self.library = library
 
-    def create(self, proposal):
+    def create(self, proposal, *, check_current=False):
         with self.library.connect() as db:
+            if check_current:
+                db.execute("BEGIN IMMEDIATE")
+                for row in proposal.rows:
+                    current = db.execute(
+                        "SELECT 1 FROM documents WHERE id=? AND digest=? AND ignored=0 "
+                        "AND status NOT IN ('EXCLUDED','MISSING','STALE')",
+                        (row.id, row.digest),
+                    ).fetchone()
+                    if current is None:
+                        raise CatalogError("部分文档在发现分组期间已变化，请重新分析。")
             blob = serialize(proposal)
             db.execute("INSERT INTO proposals (id,revision,payload,state) VALUES (?,?,?,'DRAFT')",
                        (proposal.id, proposal.revision, blob))

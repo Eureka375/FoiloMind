@@ -12,7 +12,7 @@ runtime_dlls = [(str(conda_bin / name), ".") for name in runtime_names if (conda
 a = Analysis(
     ["launch.pyw"],
     binaries=runtime_dlls,
-    datas=collect_data_files("tkinterdnd2"),
+    datas=collect_data_files("tkinterdnd2") + collect_data_files("jieba"),
     hiddenimports=["keyring.backends.Windows"],
 )
 pyz = PYZ(a.pure)

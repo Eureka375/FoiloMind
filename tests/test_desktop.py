@@ -96,6 +96,29 @@ class DesktopTests(unittest.TestCase):
             self.assertIn("无法保存", self.app.settings_status.get())
         self.assertEqual(self.store.load().startup_page, StartupPage.TASKS)
 
+    def test_discover_folder_and_confirm_classification_in_review_tab(self):
+        with TemporaryDirectory() as chosen:
+            folder = Path(chosen)
+            for name, text in {
+                "a.txt": "数据库事务 隔离级别 行锁 死锁 索引 数据库查询",
+                "b.txt": "数据库事务 查询 索引 行锁 死锁 隔离级别",
+                "c.txt": "网络报文 交换机 路由器 子网 掩码 网络协议",
+                "d.txt": "网络报文 路由器 交换机 子网 掩码 路由协议",
+            }.items():
+                (folder / name).write_text(text, encoding="utf-8")
+            view = self.app.review
+            with patch("foliomind.review_view.filedialog.askdirectory", return_value=chosen), \
+                    patch("foliomind.review_view.messagebox.askyesno", return_value=True):
+                view.discovery_button.invoke()
+                self.wait_for(lambda: view.proposal is not None)
+                record = next(doc for doc in view.library.documents() if doc.path.name == "a.txt")
+                suggested = view.rows[record.id].course
+                self.assertTrue(suggested)
+                view.tree.selection_set(record.id)
+                self.assertEqual(record.course, "")
+                view.apply()
+                self.wait_for(lambda: view.library.get(record.id).course == suggested)
+
     def test_import_fixture_and_display_original_line(self):
         sample = Path(__file__).parent / "fixtures/n0-n1/样本目录/开发集/01_未命名.txt"
         self.app.catalog.add_paths((str(sample),))

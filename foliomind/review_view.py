@@ -1,9 +1,11 @@
 """Tk controls for batch consent, evidence review and revision."""
 
 import tkinter as tk
-from tkinter import messagebox, simpledialog, ttk
+from pathlib import Path
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from .analysis import AnalysisService, Profile, request_json
+from .discovery import discover_folder
 from .library import CatalogError
 from .proposals import ProposalStore, RevisionInput
 
@@ -51,6 +53,13 @@ class ReviewView:
             ("历史方案", self.open_existing), ("手动调整", self.manual), ("文字修订", self.revise),
         ):
             ttk.Button(bar, text=title, command=action).pack(side="left", padx=(0, 6))
+        discovery = ttk.Frame(frame)
+        discovery.pack(fill="x", pady=(6, 0))
+        self.discovery_button = ttk.Button(discovery, text="选择文件夹并发现分组", command=self.discover)
+        self.discovery_button.pack(side="left")
+        ttk.Button(discovery, text="修改分组", command=self.change_group).pack(side="left", padx=6)
+        self.semantic_discovery = tk.BooleanVar(frame, value=False)
+        ttk.Checkbutton(discovery, text="使用本地语义模型", variable=self.semantic_discovery).pack(side="left")
         row = ttk.Frame(frame)
         row.pack(fill="x", pady=8)
         ttk.Label(row, text="可选课程清单（逗号分隔）").pack(side="left")
@@ -82,7 +91,7 @@ class ReviewView:
             self.flags[key] = value
             ttk.Checkbutton(bar, text=label, variable=value).pack(side="left", padx=(0, 8))
         ttk.Button(bar, text="接受选中项", command=self.apply).pack(side="left")
-        self.status = tk.StringVar(frame, "先从文件库选择资料，再启动分析。")
+        self.status = tk.StringVar(frame, "选择文件夹发现分组，或从文件库选择资料启动云端分析。")
         ttk.Label(frame, textvariable=self.status, wraplength=740).pack(anchor="w")
 
     def get_profile(self):
@@ -110,6 +119,63 @@ class ReviewView:
             return
         self.run("测试云端连接", lambda *_: request_json(profile, profile.key(), "ping", {}),
                  lambda _: self.status.set("服务已返回可解析的响应。未发送文档。"))
+
+    def discover(self):
+        folder = filedialog.askdirectory(parent=self.frame, mustexist=True, title="选择待分类的文件夹")
+        if not folder:
+            return
+        model_path = None
+        if self.semantic_discovery.get():
+            chosen_model = filedialog.askdirectory(parent=self.frame, mustexist=True, title="选择已下载的本地模型目录")
+            if not chosen_model:
+                return
+            model_path = Path(chosen_model)
+        recursive = self.catalog.recursive.get()
+        exclusions = tuple(value.strip() for value in self.catalog.exclusions.get().split(";") if value.strip())
+        scope = "包含子目录" if recursive else "仅处理当前目录"
+        excluded = "、".join(exclusions) or "无额外排除项"
+        if not messagebox.askyesno(
+            "确认本地分析",
+            f"{folder}\n新来源：{scope}，排除项：{excluded}。已导入来源沿用原范围。"
+            "\n同意读取并加入本地资料库？分析和分组在本机运行，确认分类只会更新资料库。",
+            parent=self.frame,
+        ):
+            return
+        library, store = self.library, self.store
+
+        def work(stop, progress):
+            proposal = discover_folder(library, store, Path(folder), stop, progress,
+                                       recursive=recursive, exclusions=exclusions, model_path=model_path)
+            return proposal, library.documents()
+
+        def complete(result):
+            proposal, documents = result
+            self.catalog.render(documents)
+            if proposal is not None:
+                for name, flag in self.flags.items():
+                    flag.set(name == "classification")
+                self.render(proposal)
+
+        self.run("本地发现分组", work, complete)
+
+    def change_group(self):
+        rows = self.selected_rows()
+        if not rows:
+            self.status.set("请选择需要改分组的文件或整组。")
+            return
+        group = simpledialog.askstring(
+            "修改分组",
+            f"为所选 {len(rows)} 份资料输入分组名。输入已有组名可合并，留空转待确认。",
+            initialvalue=rows[0].course, parent=self.frame,
+        )
+        if group is None:
+            return
+        try:
+            diff = self.store.preview(self.proposal, [{"id": row.id, "course": group} for row in rows])
+        except CatalogError as error:
+            self.display_error(error)
+            return
+        self.present_diff(diff)
 
     def analyze(self):
         try:
